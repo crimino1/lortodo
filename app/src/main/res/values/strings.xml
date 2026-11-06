@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">LOR</string>
+    <string name="widget_description">Today\'s tasks with checkboxes</string>
+</resources>

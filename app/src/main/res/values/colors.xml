@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#131313</color>
+    <color name="lor_bg">#F7F7F4</color>
+    <color name="lor_surface">#FFFFFF</color>
+    <color name="lor_ink">#131313</color>
+    <color name="lor_muted">#66665F</color>
+    <color name="lor_line">#E5E5DF</color>
+    <color name="lor_accent">#FF4F1A</color>
+</resources>

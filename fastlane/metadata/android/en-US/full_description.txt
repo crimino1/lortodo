@@ -1,0 +1,33 @@
+<p>LOR is a to-do app that stays on your phone and won't let you forget. There is no account, no cloud and no internet permission: every task lives on your device and nowhere else.</p>
+
+<p><b>Reminders that work</b></p>
+<ul>
+<li>Exact notifications with Done, Snooze 10 min and Snooze 1 hr buttons</li>
+<li>Full-screen alarms that ring over the lock screen with your choice of sound</li>
+<li>Nudges that keep coming at an interval you set until the task is done</li>
+<li>Optional morning and evening summaries</li>
+<li>Reminders survive reboots and app updates</li>
+</ul>
+
+<p><b>Tasks your way</b></p>
+<ul>
+<li>Notes, due date and time, Low/Medium/High priority, custom lists and subtasks</li>
+<li>Repeat daily, weekly, monthly or on chosen days</li>
+<li>Swipe right to finish, swipe left to delete, with Undo</li>
+<li>Search, filter and sort</li>
+</ul>
+
+<p><b>See your day</b></p>
+<ul>
+<li>Today view with overdue tasks highlighted and upcoming tasks</li>
+<li>Calendar, completed history, weekly count and streak</li>
+<li>Water tracker and daily rings</li>
+<li>Home screen widget with checkboxes</li>
+</ul>
+
+<p><b>Your data stays yours</b></p>
+<ul>
+<li>Export and restore everything as a JSON file you control</li>
+<li>Delete everything at any time</li>
+<li>No ads, trackers or analytics. Free software under the GPL-3.0.</li>
+</ul>

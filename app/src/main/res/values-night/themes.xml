@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Lor" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/lor_bg</item>
+        <item name="android:colorAccent">@color/lor_accent</item>
+        <item name="android:colorPrimary">@color/lor_ink</item>
+    </style>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="lor_bg">#0E0E0F</color>
+    <color name="lor_surface">#18181A</color>
+    <color name="lor_ink">#F2F2EF</color>
+    <color name="lor_muted">#9A9A96</color>
+    <color name="lor_line">#2A2A2E</color>
+</resources>
