@@ -1,6 +1,25 @@
-# LOR
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" alt="LOR logo" width="140">
+</p>
 
-A to-do app that stays on your phone and won't let you forget. No account, no cloud, no internet permission: every task lives on your device and nowhere else.
+<h1 align="center">LOR</h1>
+
+<p align="center">
+  A to-do app that stays on your phone and won't let you forget.<br>
+  No account, no cloud, no internet permission: every task lives on your device and nowhere else.
+</p>
+
+<p align="center">
+  <a href="https://github.com/mecrimino/lor/releases/latest/download/lor.apk"><b>Download the APK</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/mecrimino/lor/releases">All releases</a>
+</p>
+
+## Install
+
+1. [Download `lor.apk`](https://github.com/mecrimino/lor/releases/latest/download/lor.apk) on your Android phone (Android 8.0 or newer).
+2. Open the file. If Android asks, allow your browser or file manager to install apps.
+3. If Google Play Protect warns about an unknown developer, choose **Install anyway**. LOR isn't on the Play Store, so Android doesn't recognise the developer.
 
 ## Features
 
