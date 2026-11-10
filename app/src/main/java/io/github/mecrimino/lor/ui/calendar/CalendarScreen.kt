@@ -59,6 +59,7 @@ import io.github.mecrimino.lor.ui.theme.LocalLor
 import io.github.mecrimino.lor.ui.theme.LorType
 import java.time.LocalDate
 import java.time.YearMonth
+import io.github.mecrimino.lor.ui.components.Fmt
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -121,13 +122,13 @@ fun CalendarScreen(onOpenTask: (Long) -> Unit, vm: CalendarViewModel = hiltViewM
     var draft by rememberSaveable { mutableStateOf("") }
     val today = LocalDate.now()
     val agenda = s.byDay[s.selected].orEmpty()
-    val selShort = s.selected.format(DateTimeFormatter.ofPattern("EEE d MMM"))
+    val selShort = s.selected.format(Fmt.dayShort)
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)) {
         item("grid") {
             Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 22.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.month.format(DateTimeFormatter.ofPattern("MMMM yyyy")), style = LorType.month, color = c.ink, modifier = Modifier.weight(1f))
+                    Text(s.month.format(Fmt.month), style = LorType.month, color = c.ink, modifier = Modifier.weight(1f))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         CircleIconButton(LorIcons.prev, "Previous month", { vm.shiftMonth(-1) })
                         CircleIconButton(LorIcons.next, "Next month", { vm.shiftMonth(1) })
@@ -155,7 +156,7 @@ fun CalendarScreen(onOpenTask: (Long) -> Unit, vm: CalendarViewModel = hiltViewM
             HorizontalDivider(Modifier.padding(top = 12.dp), color = c.line)
             Row(Modifier.padding(start = 24.dp, end = 24.dp, top = 14.dp), verticalAlignment = Alignment.Bottom) {
                 Text(
-                    if (s.selected == today) "Today" else s.selected.format(DateTimeFormatter.ofPattern("EEEE d MMM")),
+                    if (s.selected == today) "Today" else s.selected.format(Fmt.dayLong),
                     style = LorType.h2, color = c.ink, modifier = Modifier.weight(1f),
                 )
                 Text(if (agenda.size == 1) "1 task" else "${agenda.size} tasks", style = LorType.body(12, 500), color = c.muted)
@@ -196,7 +197,7 @@ private fun DayCell(day: LocalDate, s: CalendarState, today: LocalDate, onPick: 
             .border(1.5.dp, if (isToday && !isSel) Accent else Color.Transparent, RoundedCornerShape(14.dp))
             .clickable(role = Role.Button) { onPick(day) }
             .semantics(mergeDescendants = true) {
-                contentDescription = day.format(DateTimeFormatter.ofPattern("EEEE d MMMM")) + if (tasks.isEmpty()) "" else ", ${tasks.size} tasks"
+                contentDescription = day.format(Fmt.dayFull) + if (tasks.isEmpty()) "" else ", ${tasks.size} tasks"
             },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),

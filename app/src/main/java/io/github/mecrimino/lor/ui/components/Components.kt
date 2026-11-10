@@ -125,16 +125,27 @@ fun LorIcon(path: String, color: Color, size: Dp = 16.dp, strokeWidth: Float = 2
 
 // ---- Formatting ----
 
+/** Built once: parsing a pattern on every recomposition (42 calendar cells, every row) is wasted work while scrolling. */
+object Fmt {
+    val time: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
+    val dateLong: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, d MMM yyyy")
+    val headerDate: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, d MMM")
+    val dayShort: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
+    val dayLong: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMM")
+    val dayFull: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM")
+    val month: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+}
+
 val categoryColor: (Category) -> Color = { Color(it.color) }
 
 fun formatMinute(minute: Int): String =
-    java.time.LocalTime.of(minute / 60, minute % 60).format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
+    java.time.LocalTime.of(minute / 60, minute % 60).format(Fmt.time)
 
 fun formatTime(task: Task): String = task.dueMinute?.let(::formatMinute) ?: ""
 
 /** "10:00 AM", "Today", or "Mon 2 Nov · 10:00 AM" for other days. */
 fun formatDue(task: Task, today: LocalDate = LocalDate.now()): String {
-    val day = if (task.dueDate == today) "" else task.dueDate.format(DateTimeFormatter.ofPattern("EEE d MMM"))
+    val day = if (task.dueDate == today) "" else task.dueDate.format(Fmt.dayShort)
     return listOf(day, formatTime(task)).filter { it.isNotEmpty() }.joinToString(" · ").ifEmpty { "Today" }
 }
 
@@ -165,7 +176,7 @@ fun LorHeader(actions: @Composable RowScope.() -> Unit = {}) {
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                LocalDate.now().format(DateTimeFormatter.ofPattern("EEE, d MMM")),
+                LocalDate.now().format(Fmt.headerDate),
                 style = LorType.body(12, 500), color = c.muted,
             )
         }

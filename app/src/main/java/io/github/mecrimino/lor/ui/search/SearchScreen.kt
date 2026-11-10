@@ -19,6 +19,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,12 +52,10 @@ import io.github.mecrimino.lor.ui.of
 import io.github.mecrimino.lor.ui.theme.Accent
 import io.github.mecrimino.lor.ui.theme.LocalLor
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 
 enum class SortBy { DUE, PRIORITY, CREATED }
 
@@ -92,20 +93,24 @@ data class SearchState(
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(repo: TaskRepository) : TaskListViewModel(repo) {
-    private val query = MutableStateFlow(SearchQuery())
+    /** Compose state so the search box types without lag; results follow a frame later. */
+    var query by mutableStateOf(SearchQuery())
+        private set
 
-    val state: StateFlow<SearchState> = combine(repo.tasks, repo.categories, query) { tasks, cats, q ->
+    val state: StateFlow<SearchState> = combine(repo.tasks, repo.categories, snapshotFlow { query }) { tasks, cats, q ->
         SearchState(q, applyQuery(tasks, q), cats)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchState())
 
-    fun update(change: (SearchQuery) -> SearchQuery) = query.update(change)
+    fun update(change: (SearchQuery) -> SearchQuery) {
+        query = change(query)
+    }
 }
 
 @Composable
 fun SearchScreen(onBack: () -> Unit, onOpenTask: (Long) -> Unit, vm: SearchViewModel = hiltViewModel()) {
     val c = LocalLor.current
     val s by vm.state.collectAsStateWithLifecycle()
-    val q = s.query
+    val q = vm.query
     val snackbars = remember { SnackbarHostState() }
     UndoSnackbars(vm, snackbars)
 

@@ -78,6 +78,14 @@ class BackupTest {
         assertEquals(SILENCED, env.repo.task(7)!!.firedCount)
     }
 
+    @Test fun restoreSilencesTasksThatWereMidNag() = runTest {
+        val env = TestEnv()
+        val past = LocalDate.now().minusDays(3).toEpochDay()
+        val nagging = sample.tasks[0].copy(dueEpochDay = past, firedCount = 2, lastFiredAt = 1L)
+        env.backup.restore(sample.copy(tasks = listOf(nagging)))
+        assertEquals(SILENCED, env.repo.task(7)!!.firedCount)
+    }
+
     @Test fun failedDatabaseSwapLeavesDataAlone() = runTest {
         val env = TestEnv()
         env.repo.save(Task(title = "Keep me", dueEpochDay = tomorrow))

@@ -65,6 +65,35 @@ class ViewModelsTest {
     private fun task(title: String, day: LocalDate = today, minute: Int? = null, cat: Long? = null) =
         Task(title = title, dueEpochDay = day.toEpochDay(), dueMinute = minute, categoryId = cat)
 
+    private suspend fun awaitLoaded(vm: TaskEditViewModel): EditState = withTimeout(5_000) {
+        while (!vm.state.loaded) delay(10)
+        vm.state
+    }
+
+    @Test fun editorDraftSurvivesProcessDeath() = runBlocking {
+        val handle = SavedStateHandle(mapOf("id" to 0L))
+        val first = TaskEditViewModel(handle, env.repo, env.settings)
+        awaitLoaded(first)
+        first.edit { it.copy(title = "Half written", priority = Priority.HIGH) }
+        first.addSubtask("step")
+        val restored = awaitLoaded(TaskEditViewModel(handle, env.repo, env.settings))
+        assertEquals("Half written", restored.title)
+        assertEquals(Priority.HIGH, restored.priority)
+        assertEquals(listOf("step"), restored.subtasks.map { it.title })
+    }
+
+    @Test fun editorIgnoresDoubleSave() = runBlocking {
+        val vm = TaskEditViewModel(SavedStateHandle(mapOf("id" to 0L)), env.repo, env.settings)
+        awaitLoaded(vm)
+        vm.edit { it.copy(title = "Once") }
+        val saved = CompletableDeferred<Unit>()
+        vm.save { saved.complete(Unit) }
+        vm.save { }
+        withTimeout(5_000) { saved.await() }
+        delay(200)
+        assertEquals(1, env.dao.allTasks().size)
+    }
+
     @Test fun greetingChangesWithTime() {
         assertEquals("Good morning, Sam", greetingFor(8, "Sam"))
         assertEquals("Good afternoon, Sam", greetingFor(13, "Sam"))
@@ -175,7 +204,7 @@ class ViewModelsTest {
         env.settings.setDefaultReminder(ReminderType.ALARM)
         val day = today.plusDays(3)
         val vm = TaskEditViewModel(SavedStateHandle(mapOf("id" to 0L, "date" to day.toEpochDay())), env.repo, env.settings)
-        val loaded = withTimeout(5_000) { vm.state.first { it.loaded } }
+        val loaded = awaitLoaded(vm)
         assertEquals(day, loaded.date)
         assertEquals(ReminderType.ALARM, loaded.reminder)
         assertTrue(loaded.minute != null)
@@ -195,14 +224,14 @@ class ViewModelsTest {
     @Test fun editorLoadsExisting() = runBlocking {
         val id = env.repo.save(task("Old", minute = 60))
         val vm = TaskEditViewModel(SavedStateHandle(mapOf("id" to id)), env.repo, env.settings)
-        val s = withTimeout(5_000) { vm.state.first { it.loaded } }
+        val s = awaitLoaded(vm)
         assertEquals("Old", s.title)
         assertEquals(60, s.minute)
     }
 
     @Test fun editorHandlesVanishedTask() = runBlocking {
         val vm = TaskEditViewModel(SavedStateHandle(mapOf("id" to 999L)), env.repo, env.settings)
-        val s = withTimeout(5_000) { vm.state.first { it.loaded } }
+        val s = awaitLoaded(vm)
         assertNull(s.base)
     }
 

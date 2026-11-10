@@ -51,11 +51,9 @@ class BackupManager @Inject constructor(
         // A restore must not set off every old reminder at once: past-due ones stay quiet.
         val tasks = data.tasks.map { t ->
             val due = t.dueAtMillis()
-            when {
-                t.isDone || due == null || due > now -> t
-                t.firedCount == 0 -> t.copy(firedCount = SILENCED)
-                else -> t
-            }.let { if ((it.snoozedUntil ?: Long.MAX_VALUE) <= now) it.copy(snoozedUntil = null) else it }
+            val snoozedAhead = (t.snoozedUntil ?: 0) > now
+            if (t.isDone || due == null || due > now || snoozedAhead) t
+            else t.copy(firedCount = SILENCED, snoozedUntil = null, lastFiredAt = null)
         }
         repo.replaceAll(data.categories, tasks, data.subtasks) // throws before settings change if the swap fails
         settings.restore(data.settings)

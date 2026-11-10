@@ -45,12 +45,15 @@ class AlarmService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val id = intent?.getLongExtra(ReminderScheduler.EXTRA_TASK_ID, -1) ?: -1
+        val previous = ringing.value
         ringing.value = id
         stopRinging()
         // startForeground must run before anything suspends, or the system kills the app. The title follows once loaded.
         showForeground(Task(id = id.coerceAtLeast(1), title = "Alarm", dueEpochDay = LocalDate.now().toEpochDay()))
         ringJob = scope.launch {
             val task = repo.task(id)
+            // Another alarm was still ringing: it moves to a normal notification instead of vanishing.
+            if (previous != NOT_RINGING && previous != id) repo.task(previous)?.takeUnless { it.isDone }?.let(notifier::showReminder)
             if (task == null || task.isDone) {
                 stopSelf()
                 return@launch

@@ -1,0 +1,4 @@
+# Precompile LOR's own code at install time, so the first scrolls and screen changes don't stutter
+# while ART is still interpreting. Library code (Compose, Room...) ships its own profiles.
+HSPLio/github/mecrimino/lor/**;->**(**)**
+Lio/github/mecrimino/lor/**;

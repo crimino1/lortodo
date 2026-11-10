@@ -43,6 +43,8 @@ class ReminderScheduler @Inject constructor(
             if (s.summaryOn) arm(nextDailyAt(minute, LocalDateTime.now()), intent, alarmClock = false)
             else alarms.cancel(intent)
         }
+        val midnight = LocalDateTime.now().toLocalDate().plusDays(1).atTime(0, 0, 30).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, midnight, summaryIntent(SummaryReceiver.MIDNIGHT))
     }
 
     private fun arm(at: Long, intent: PendingIntent, alarmClock: Boolean) {

@@ -11,6 +11,7 @@ import io.github.mecrimino.lor.data.Task
 import io.github.mecrimino.lor.data.TaskStatus
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,7 +32,11 @@ class TaskRepositoryTest {
     private lateinit var env: TestEnv
     private val tomorrow get() = LocalDate.now().plusDays(1).toEpochDay()
     private val alarmManager get() = env.context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    private fun alarms() = shadowOf(alarmManager).scheduledAlarms
+    private fun allAlarms() = shadowOf(alarmManager).scheduledAlarms
+    /** Task reminders only, not the summary or midnight widget alarms. */
+    private fun alarms() = allAlarms().filter {
+        shadowOf(it.operation!!).savedIntent.component?.className == io.github.mecrimino.lor.reminders.ReminderReceiver::class.java.name
+    }
 
     @Before fun setUp() {
         ShadowAlarmManager.setCanScheduleExactAlarms(true)
@@ -194,7 +199,7 @@ class TaskRepositoryTest {
     @Test fun rescheduleAllRestoresAlarmsAfterReboot() = runTest {
         env.repo.save(reminderTask())
         env.repo.save(reminderTask(ReminderType.ALARM))
-        alarms().toList().forEach { alarmManager.cancel(it.operation!!) } // what a reboot does
+        allAlarms().toList().forEach { alarmManager.cancel(it.operation!!) } // what a reboot does
         assertTrue(alarms().isEmpty())
         env.repo.rescheduleAll()
         assertEquals(2, alarms().size)
@@ -203,10 +208,38 @@ class TaskRepositoryTest {
     @Test fun summariesFollowSetting() = runTest {
         env.settings.setSummaryOn(true)
         env.scheduler.syncSummaries()
-        assertEquals(2, alarms().size)
+        assertEquals(3, allAlarms().size) // morning, evening, and the widget's midnight refresh
         env.settings.setSummaryOn(false)
         env.scheduler.syncSummaries()
-        assertTrue(alarms().isEmpty())
+        assertEquals(1, allAlarms().size)
+    }
+
+    @Test fun savingFromStaleEditorKeepsCompletion() = runTest {
+        val id = env.repo.save(reminderTask().copy(repeat = RepeatType.DAILY))
+        val editorCopy = env.repo.task(id)!!
+        env.repo.complete(id) // e.g. Done tapped on the notification while the editor was open
+        env.repo.save(editorCopy.copy(title = "Renamed"))
+        val t = env.repo.task(id)!!
+        assertEquals("Renamed", t.title)
+        assertEquals(TaskStatus.DONE, t.status)
+        assertNotNull(t.nextOccurrenceId)
+    }
+
+    @Test fun uncompletingKeepsAFinishedRepeat() = runTest {
+        val monday = env.repo.save(reminderTask().copy(repeat = RepeatType.DAILY))
+        env.repo.complete(monday)
+        val tuesday = env.repo.task(monday)!!.nextOccurrenceId!!
+        env.repo.complete(tuesday)
+        env.repo.uncomplete(monday)
+        assertEquals(TaskStatus.DONE, env.repo.task(tuesday)!!.status)
+    }
+
+    @Test fun concurrentCompletesSpawnOneRepeat() = runTest {
+        val id = env.repo.save(reminderTask().copy(repeat = RepeatType.DAILY))
+        kotlinx.coroutines.coroutineScope {
+            repeat(5) { launch(kotlinx.coroutines.Dispatchers.Default) { env.repo.complete(id) } }
+        }
+        assertEquals(2, env.dao.allTasks().size)
     }
 
     @Test fun deleteAllResetsToDefaultLists() = runTest {

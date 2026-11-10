@@ -63,6 +63,7 @@ import io.github.mecrimino.lor.ui.theme.PriorityHigh
 import io.github.mecrimino.lor.ui.theme.PriorityLow
 import io.github.mecrimino.lor.ui.theme.PriorityMedium
 import java.time.LocalDate
+import io.github.mecrimino.lor.ui.components.Fmt
 import java.time.format.DateTimeFormatter
 
 private val WeekLetters = listOf("M", "T", "W", "T", "F", "S", "S")
@@ -72,7 +73,7 @@ private val WeekLetters = listOf("M", "T", "W", "T", "F", "S", "S")
 fun TaskEditScreen(onBack: () -> Unit, vm: TaskEditViewModel = hiltViewModel()) {
     val c = LocalLor.current
     val context = LocalContext.current
-    val s by vm.state.collectAsStateWithLifecycle()
+    val s = vm.state
     val cats by vm.categories.collectAsStateWithLifecycle()
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var newSubtask by rememberSaveable { mutableStateOf("") }
@@ -96,7 +97,7 @@ fun TaskEditScreen(onBack: () -> Unit, vm: TaskEditViewModel = hiltViewModel()) 
             }
             Field("Due") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PickerButton(s.date.format(DateTimeFormatter.ofPattern("EEE, d MMM yyyy")), Modifier.weight(1.4f)) {
+                    PickerButton(s.date.format(Fmt.dateLong), Modifier.weight(1.4f)) {
                         DatePickerDialog(
                             context,
                             { _, y, m, d -> vm.edit { it.copy(date = LocalDate.of(y, m + 1, d)) } },

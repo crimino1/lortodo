@@ -6,6 +6,8 @@ import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.mecrimino.lor.data.SettingsRepository
 import io.github.mecrimino.lor.data.TaskRepository
+import androidx.glance.appwidget.updateAll
+import io.github.mecrimino.lor.widget.TodayWidget
 import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +73,11 @@ class SummaryReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val kind = intent.getIntExtra(EXTRA_KIND, MORNING)
         launchAsync {
+            if (kind == MIDNIGHT) {
+                TodayWidget().updateAll(context)
+                scheduler.syncSummaries()
+                return@launchAsync
+            }
             val s = settings.current()
             val count = repo.pendingCount(LocalDate.now())
             if (s.summaryOn && count > 0) {
@@ -85,6 +92,7 @@ class SummaryReceiver : BroadcastReceiver() {
     companion object {
         const val MORNING = 1
         const val EVENING = 2
+        const val MIDNIGHT = 3
         const val EXTRA_KIND = "kind"
     }
 }

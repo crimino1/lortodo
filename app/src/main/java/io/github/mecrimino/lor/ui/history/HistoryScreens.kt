@@ -45,6 +45,7 @@ import io.github.mecrimino.lor.ui.theme.LorType
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import io.github.mecrimino.lor.ui.components.Fmt
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -107,7 +108,7 @@ fun HistoryScreen(onBack: () -> Unit, vm: HistoryViewModel = hiltViewModel()) {
             s.byDay.forEach { (day, tasks) ->
                 item("label-$day") {
                     SectionLabel(
-                        "${day.format(DateTimeFormatter.ofPattern("EEE d MMM"))} · ${tasks.size}",
+                        "${day.format(Fmt.dayShort)} · ${tasks.size}",
                         Modifier.padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 2.dp),
                     )
                 }

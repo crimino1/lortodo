@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +74,7 @@ fun HomeScreen(onOpenTask: (Long) -> Unit, snackbars: SnackbarHostState, vm: Hom
     val s by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var draft by rememberSaveable { mutableStateOf("") }
+    val needsTip = remember { needsBatteryTip(context) }
     UndoSnackbars(vm, snackbars)
 
     fun LazyListScope.section(title: String, tasks: List<Task>, keyPrefix: String, overdue: Boolean = false, showDate: Boolean = false) {
@@ -170,7 +172,8 @@ fun HomeScreen(onOpenTask: (Long) -> Unit, snackbars: SnackbarHostState, vm: Hom
                 modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 14.dp),
             )
         }
-        if (s.showBatteryTip && needsBatteryTip(context)) {
+        // isIgnoringBatteryOptimizations is a call into the system; ask once, not on every recomposition.
+        if (s.showBatteryTip && needsTip) {
             item("battery-tip") { BatteryTip(vm::dismissBatteryTip) }
         }
 

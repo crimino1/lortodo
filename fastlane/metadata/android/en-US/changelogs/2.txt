@@ -1,0 +1,11 @@
+Smoother typing in the task editor, list editor and search.
+Faster screen transitions and precompiled app code for smoother scrolling.
+Fixed: a second alarm at the same time hiding the first one.
+Fixed: saving in the editor undoing a Done tapped on the notification.
+Fixed: rescheduling a task while its notification was still showing.
+Fixed: un-ticking a repeating task deleting an already finished repeat.
+Fixed: double taps creating duplicate tasks or lists, or leaving a blank screen.
+Fixed: rotating the screen reopening a task from a notification.
+Fixed: restoring a backup setting off old reminders.
+Fixed: the widget showing yesterday after midnight.
+A half-written task now survives Android closing the app.

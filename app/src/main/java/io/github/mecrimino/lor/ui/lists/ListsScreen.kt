@@ -66,12 +66,10 @@ import io.github.mecrimino.lor.ui.theme.LocalLor
 import io.github.mecrimino.lor.ui.theme.LorType
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** The design's 8 list colours. */
@@ -95,47 +93,55 @@ class ListsViewModel @Inject constructor(
     private val repo: TaskRepository,
     private val settings: SettingsRepository,
 ) : ViewModel() {
-    private val form = MutableStateFlow<ListForm?>(null)
+    /** What the editor shows once the user picks something; Compose state so the name field types without lag. */
+    var picked by mutableStateOf<ListForm?>(null)
+        private set
+    private var saving = false
 
-    val state: StateFlow<ListsState> = combine(repo.categories, repo.tasks, form, settings.settings) { cats, tasks, f, s ->
+    val state: StateFlow<ListsState> = combine(repo.categories, repo.tasks, settings.settings) { cats, tasks, s ->
         val today = LocalDate.now()
         ListsState(
             cards = cats.map { c -> ListCard(c, tasks.count { it.categoryId == c.id && !it.isDone && !it.dueDate.isBefore(today) }) },
             // Opens on Exercise, like the design, until the user picks something.
-            form = f ?: (cats.firstOrNull { it.id == LorDatabase.EXERCISE_ID } ?: cats.firstOrNull())?.let(::formOf) ?: ListForm(),
+            form = (cats.firstOrNull { it.id == LorDatabase.EXERCISE_ID } ?: cats.firstOrNull())?.let(::formOf) ?: ListForm(),
             settings = s,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ListsState())
 
     private fun formOf(c: Category) = ListForm(c.id, c.name, c.color, c.icon)
 
+    val form: ListForm get() = picked ?: state.value.form
+
     fun edit(c: Category) {
-        form.value = formOf(c)
+        picked = formOf(c)
     }
 
     fun newList() {
-        form.value = ListForm()
+        picked = ListForm()
     }
 
     fun update(change: (ListForm) -> ListForm) {
-        form.update { change(it ?: state.value.form) }
+        picked = change(form)
     }
 
     fun save() {
-        val f = state.value.form
+        val f = form
+        if (saving) return // a double tap must not create the list twice
+        saving = true
         val name = f.name.trim().ifEmpty { "Untitled" }
         viewModelScope.launch {
             val id = repo.saveCategory(Category(f.id, name, f.color, f.icon))
-            form.value = f.copy(id = id, name = name)
+            picked = f.copy(id = id, name = name)
+            saving = false
         }
     }
 
     fun delete() {
-        val id = state.value.form.id
+        val id = form.id
         if (id == 0L) return
         viewModelScope.launch {
             repo.deleteCategory(id)
-            form.value = ListForm()
+            picked = ListForm()
         }
     }
 
@@ -153,7 +159,7 @@ class ListsViewModel @Inject constructor(
 fun ListsScreen(onHistory: () -> Unit, onStats: () -> Unit, vm: ListsViewModel = hiltViewModel()) {
     val c = LocalLor.current
     val s by vm.state.collectAsStateWithLifecycle()
-    val f = s.form
+    val f = vm.form
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {

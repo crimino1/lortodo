@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +45,10 @@ import dagger.hilt.components.SingletonComponent
 import io.github.mecrimino.lor.MainActivity
 import io.github.mecrimino.lor.data.Task
 import io.github.mecrimino.lor.data.TaskRepository
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
+import kotlinx.coroutines.delay
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -60,9 +65,16 @@ private val AccentColor = ColorProvider(day = Color(0xFFFF4F1A), night = Color(0
 
 class TodayWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val tasks = repo(context).tasksOn(LocalDate.now())
+        val repo = repo(context)
         provideContent {
-            val today by tasks.collectAsState(emptyList())
+            // A long-lived widget session must move on to the new day at midnight.
+            val day by produceState(LocalDate.now()) {
+                while (true) {
+                    delay(Duration.between(LocalDateTime.now(), LocalDate.now().plusDays(1).atStartOfDay()).toMillis() + 1_000)
+                    value = LocalDate.now()
+                }
+            }
+            val today by remember(day) { repo.tasksOn(day) }.collectAsState(emptyList())
             Content(today)
         }
     }

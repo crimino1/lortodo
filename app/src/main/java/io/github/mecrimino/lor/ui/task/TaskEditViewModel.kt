@@ -1,5 +1,8 @@
 package io.github.mecrimino.lor.ui.task
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -15,12 +18,11 @@ import io.github.mecrimino.lor.data.TaskRepository
 import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class EditState(
@@ -53,9 +55,31 @@ data class EditState(
 /** Next full hour, clamped so a task created at 23:30 doesn't land on 00:00 of the same day. */
 fun nextHourMinute(now: LocalTime = LocalTime.now()): Int = minOf((now.hour + 1) * 60, 23 * 60 + 59)
 
+/** The editable fields as JSON, kept in SavedStateHandle so a half-written task survives Android killing the app. */
+private fun EditState.toDraft(): String = JSONObject()
+    .put("title", title).put("notes", notes).put("date", date.toEpochDay()).put("minute", minute ?: -1)
+    .put("priority", priority.name).put("categoryId", categoryId ?: -1).put("repeat", repeat.name)
+    .put("repeatDays", repeatDays).put("reminder", reminder.name)
+    .put("subtasks", JSONArray(subtasks.map { JSONObject().put("title", it.title).put("done", it.done) }))
+    .toString()
+
+private fun EditState.withDraft(json: String): EditState {
+    val o = JSONObject(json)
+    val subs = o.getJSONArray("subtasks")
+    return copy(
+        title = o.getString("title"), notes = o.getString("notes"), date = LocalDate.ofEpochDay(o.getLong("date")),
+        minute = o.getInt("minute").takeIf { it >= 0 }, priority = enumValueOf(o.getString("priority")),
+        categoryId = o.getLong("categoryId").takeIf { it > 0 }, repeat = enumValueOf(o.getString("repeat")),
+        repeatDays = o.getInt("repeatDays"), reminder = enumValueOf(o.getString("reminder")),
+        subtasks = List(subs.length()) { i -> subs.getJSONObject(i).let { Subtask(title = it.getString("title"), done = it.getBoolean("done")) } },
+    )
+}
+
+private const val DRAFT = "draft"
+
 @HiltViewModel
 class TaskEditViewModel @Inject constructor(
-    handle: SavedStateHandle,
+    private val handle: SavedStateHandle,
     private val repo: TaskRepository,
     private val settings: SettingsRepository,
 ) : ViewModel() {
@@ -65,13 +89,15 @@ class TaskEditViewModel @Inject constructor(
     val isNew get() = taskId == 0L
     val categories: StateFlow<List<Category>> = repo.categories.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    private val _state = MutableStateFlow(EditState())
-    val state = _state.asStateFlow()
+    // Compose state, not a StateFlow: text fields need their value back in the same frame or typing lags and drops letters.
+    var state by mutableStateOf(EditState())
+        private set
+    private var busy = false
 
     init {
         viewModelScope.launch {
             val task = if (isNew) null else repo.task(taskId)
-            _state.value = if (task != null) {
+            val loaded = if (task != null) {
                 EditState(
                     base = task, title = task.title, notes = task.notes, date = task.dueDate, minute = task.dueMinute,
                     priority = task.priority, categoryId = task.categoryId, repeat = task.repeat, repeatDays = task.repeatDays,
@@ -81,10 +107,15 @@ class TaskEditViewModel @Inject constructor(
                 EditState(date = if (dateArg >= 0) LocalDate.ofEpochDay(dateArg) else LocalDate.now(), loaded = true)
                     .withReminder(settings.current().defaultReminder)
             }
+            val draft = handle.get<String>(DRAFT)?.takeIf { isNew || task != null }
+            state = draft?.let { runCatching { loaded.withDraft(it) }.getOrNull() } ?: loaded
         }
     }
 
-    fun edit(change: (EditState) -> EditState) = _state.update(change)
+    fun edit(change: (EditState) -> EditState) {
+        state = change(state)
+        handle[DRAFT] = state.toDraft()
+    }
 
     fun addSubtask(title: String) {
         if (title.isBlank()) return
@@ -92,8 +123,9 @@ class TaskEditViewModel @Inject constructor(
     }
 
     fun save(then: () -> Unit) {
-        val s = _state.value
-        if (!s.canSave) return
+        val s = state
+        if (!s.canSave || busy) return // a double tap must not save a new task twice
+        busy = true
         viewModelScope.launch {
             repo.save(s.toTask(), s.subtasks)
             then()
@@ -101,7 +133,9 @@ class TaskEditViewModel @Inject constructor(
     }
 
     fun delete(then: () -> Unit) {
-        val base = _state.value.base ?: return then()
+        val base = state.base ?: return then()
+        if (busy) return
+        busy = true
         viewModelScope.launch {
             repo.delete(base)
             then()
