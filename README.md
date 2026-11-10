@@ -12,6 +12,8 @@
 <p align="center">
   <a href="https://github.com/mecrimino/lor/releases/latest/download/lor.apk"><b>Download the APK</b></a>
   &nbsp;·&nbsp;
+  <a href="https://mecrimino.github.io/lor-todo-website/">Website</a>
+  &nbsp;·&nbsp;
   <a href="https://github.com/mecrimino/lor/releases">All releases</a>
 </p>
 
